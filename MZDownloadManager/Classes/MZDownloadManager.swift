@@ -231,7 +231,11 @@ extension MZDownloadManager: URLSessionDownloadDelegate {
                     debugPrint("directory path = \(destinationPath)")
                     
                     do {
-                        try fileManager.moveItem(at: location, to: fileURL)
+                        if downloadModel.overwritable {
+                            try _ = fileManager.replaceItemAt(fileURL, withItemAt: location)
+                        } else {
+                            try fileManager.moveItem(at: location, to: fileURL)
+                        }
                     } catch let error as NSError {
                         debugPrint("Error while moving downloaded file to destination path:\(error)")
                         DispatchQueue.main.async(execute: { () -> Void in
@@ -350,7 +354,7 @@ extension MZDownloadManager: URLSessionDownloadDelegate {
 
 extension MZDownloadManager {
     
-    @objc public func addDownloadTask(_ fileName: String, request: URLRequest, destinationPath: String) {
+    @objc public func addDownloadTask(_ fileName: String, request: URLRequest, destinationPath: String, overwritable: Bool = false) {
         
         let url = request.url!
         let fileURL = url.absoluteString
@@ -365,25 +369,26 @@ extension MZDownloadManager {
         downloadModel.startTime = Date()
         downloadModel.status = TaskStatus.downloading.description()
         downloadModel.task = downloadTask
+        downloadModel.overwritable = overwritable
         
         downloadingArray.append(downloadModel)
         delegate?.downloadRequestStarted?(downloadModel, index: downloadingArray.count - 1)
     }
     
-    @objc public func addDownloadTask(_ fileName: String, fileURL: String, destinationPath: String) {
+    @objc public func addDownloadTask(_ fileName: String, fileURL: String, destinationPath: String, overwritable: Bool = false) {
         
         let url = URL(string: fileURL)!
         let request = URLRequest(url: url)
-        addDownloadTask(fileName, request: request, destinationPath: destinationPath)
+        addDownloadTask(fileName, request: request, destinationPath: destinationPath, overwritable: overwritable)
         
     }
     
-    @objc public func addDownloadTask(_ fileName: String, fileURL: String) {
-        addDownloadTask(fileName, fileURL: fileURL, destinationPath: "")
+    @objc public func addDownloadTask(_ fileName: String, fileURL: String, overwritable: Bool = false) {
+        addDownloadTask(fileName, fileURL: fileURL, destinationPath: "", overwritable: overwritable)
     }
     
-    @objc public func addDownloadTask(_ fileName: String, request: URLRequest) {
-        addDownloadTask(fileName, request: request, destinationPath: "")
+    @objc public func addDownloadTask(_ fileName: String, request: URLRequest, overwritable: Bool = false) {
+        addDownloadTask(fileName, request: request, destinationPath: "", overwritable:overwritable)
     }
     
     @objc public func pauseDownloadTaskAtIndex(_ index: Int) {
